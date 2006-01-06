@@ -1,0 +1,23 @@
+DBIx-Class-FormTools version 0.0.1
+
+Note this is Alpha software - everything might change ;-)
+
+INSTALLATION
+
+To install this module, run the following commands:
+
+    perl Build.PL
+    ./Build
+    ./Build test
+    ./Build install
+
+DEPENDENCIES
+
+- DBIx::Class
+
+COPYRIGHT AND LICENCE
+
+Copyright (C) 2005, David Jack Olrik
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
