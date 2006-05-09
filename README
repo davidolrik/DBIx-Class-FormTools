@@ -1,4 +1,4 @@
-DBIx-Class-FormTools version 0.0.1
+DBIx-Class-FormTools version 0.0.2
 
 Note this is Alpha software - everything might change ;-)
 
@@ -14,10 +14,11 @@ To install this module, run the following commands:
 DEPENDENCIES
 
 - DBIx::Class
+- DBIx::Class::PK::Auto::<Your database here>
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2005, David Jack Olrik
+Copyright (C) 2006, David Jack Olrik
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
