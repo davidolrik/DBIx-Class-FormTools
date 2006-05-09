@@ -1,6 +1,7 @@
 Revision history for DBIx-Class-FormTools
 
 0.0.3   Date
+        - Updated for DBIx::Class >= 0.06002
         - Doc cosmetics
         - Doc improvements
 
