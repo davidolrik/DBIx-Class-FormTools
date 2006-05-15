@@ -1,6 +1,6 @@
 package DBIx::Class::FormTools;
 
-our $VERSION = '0.000002';
+our $VERSION = '0.000003';
 
 use strict;
 use warnings;
@@ -14,17 +14,17 @@ __PACKAGE__->mk_classdata('_formdata' => {});
 
 =head1 NAME
 
-DBIx::Class::FormTools - Build forms with multiple interconnected objects.
+DBIx::Class::FormTools - Utility module for building forms with multiple related C<DBIx::Class> objects.
 
 =head1 VERSION
 
-This document describes DBIx::Class::FormTools version 0.0.2
+This document describes DBIx::Class::FormTools version 0.0.3
 
 =head1 SYNOPSIS
 
 =head2 Prerequisites
 
-In the exampeles I use 3 objects, a C<Film>, a C<Actor> and a C<Role>.
+In the examples I use 3 objects, a C<Film>, an C<Actor> and a C<Role>.
 C<Role> is a many to many relation between C<Film> and C<Actor>.
 
     package Film;
@@ -40,18 +40,14 @@ C<Role> is a many to many relation between C<Film> and C<Actor>.
 
 =head2 In your Model class
 
-=over
-
     use base qw/DBIx::Class/;
     __PACKAGE__->load_components(qw/PK::Auto::Pg Core DB FormTools/);
-
-=back
 
 =head2 In your view - L<HTML::Mason> example
 
     <%init>
     my $film  = Film->retrieve(42);
-    my $actor = Film->retrieve(24);
+    my $actor = Actor->retrieve(24);
     </%init>
     <form>
         <input name="<% $film->form_fieldname('title', 'o1') => 'Title' %>" type="text" value="<% $film->title %>" />
@@ -76,7 +72,7 @@ C<Role> is a many to many relation between C<Film> and C<Actor>.
 
 C<DBIx::Class::FormTools> is a data serializer, that can convert HTML formdata to C<DBIx::Class> objects based on element names created with  C<DBIx::Class::FormTools>.
 
-It uses user supplied object ids to connect the objects with each-other. The objects does not need to exist on beforehand.
+It uses user supplied object ids to connect the objects with each-other. The objects do not need to exist on beforehand.
 
 The module is not ment to be used directly, although it can of-course be done as seen in the above example, but rather used as a utility module in a C<Catalyst::Helper> module or other equivalent framework.
 
@@ -88,13 +84,15 @@ What I am trying to accomplish here, is to allow multiple objects to be created 
 
 =head2 Non-existent ids - Enter object_id
 
-When converting the formdata to objects, we need "something" to identity the objects by, and sometimes we also need this "something" to point to another object in the formdata to signify a relation. For this purpose we have the C<object_id> which is user definable and can be whatever you like.
+When converting the formdata to objects, we need "something" to identify the objects by, and sometimes we also need this "something" to point to another object in the formdata to signify a relation. For this purpose we have the C<object_id> which is user definable and can be whatever you like.
 
 =head1 METHODS
 
 =head2 C<form_fieldname($accessor, $object_id, $foreign_object_ids)>
 
-    my $name = $film->form_fieldname('title', 'o1');
+    my $name_film  = $film->form_fieldname('title', 'o1');
+    my $name_actor = $actor->form_fieldname('name', 'o2');
+    my $name_role  = Role->form_fieldname(undef,'o3', { film_id => 'o1', actor_id => 'o2' });
 
 Creates a unique form field name for use in an HTML form.
 
@@ -110,7 +108,7 @@ A unique string identifying a specific object.
 
 =item C<$foreign_object_ids>
 
-A HASHREF containing C<attribute =E<gt> object_id> pairs, use this to connect objects with each-other.
+A C<HASHREF> containing C<attribute =E<gt> object_id> pairs, use this to connect objects with each-other.
 
 =back
 
@@ -317,7 +315,7 @@ __END__
 
 When using this module it is prudent that you use a database that supports transactions.
 
-The reason why this is important, is that when calling C<formdata_to_objects> C<DBIx::Class::Row-E<gt>create()> is called foreach nonexistent object in order to get the C<primary key> filled in. This call to C<create> results in a SQL C<insert> statement, and might leave you with one object successfully put into the database and one that generates a syntax error - Using transactions, will allow you to examine the C<ARRAY> of objects returned from C<formdata_to_objects> before actually storing them in the database.
+The reason why this is important, is that when calling C<formdata_to_objects>, C<DBIx::Class::Row-E<gt>create()> is called foreach nonexistent object in order to get the C<primary key> filled in. This call to C<create> results in a SQL C<insert> statement, and might leave you with one object successfully put into the database and one that generates a syntax error - Using transactions, will allow you to examine the C<ARRAY> of objects returned from C<formdata_to_objects> before actually storing them in the database.
 
 =head2 Automatic Primary Key generation
 
@@ -346,4 +344,3 @@ modify it under the same terms as Perl itself. See L<perlartistic>.
 =head1 SEE ALSO
 
 L<DBIx::Class>, L<DBIx::Class::PK::Auto>
-
