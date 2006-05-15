@@ -1,6 +1,3 @@
-# Test files
-t/tmp/test.db
-
 # Avoid version control files.
 \bRCS\b
 \bCVS\b

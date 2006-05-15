@@ -1,17 +1,4 @@
 Revision history for DBIx-Class-FormTools
 
-0.0.3   Tue May  9 12:59:14 CEST 2006
-        - Updated for DBIx::Class >= 0.06002
-        - Doc cosmetics
-        - Doc improvements
-        - Updated tests with better test data
-        - Renamed test scripts
-        - Hide test modules from pause indexer
-
-0.0.2   Sat Jan  7 03:27:44 CET 2006
-        - Huge improvement to the docs - Now the examples make sense ;)
-        - Removed version.pm dependency, use qv()->numify type version as
-          plain scalar instead
-
-0.0.1   Fri Jan  6 02:50:41 CET 2006
-        - Initial release.
+0.0.1  Fri Jan  6 02:50:41 CET 2006
+       Initial release.
