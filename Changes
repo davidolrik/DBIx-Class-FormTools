@@ -1,4 +1,9 @@
 Revision history for DBIx-Class-FormTools
 
-0.0.1  Fri Jan  6 02:50:41 CET 2006
-       Initial release.
+0.0.2   Sat Jan  7 03:27:44 CET 2006
+        - Huge improvement to the docs - Now the examples make sense ;)
+        - Removed version.pm dependency, use qv()->numify type version as
+          plain scalar instead
+
+0.0.1   Fri Jan  6 02:50:41 CET 2006
+        - Initial release.
