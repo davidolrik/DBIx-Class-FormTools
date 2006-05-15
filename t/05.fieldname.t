@@ -1,44 +1,95 @@
 use Test::More;
 use Data::Dumper;
 
+my $field_definition = qr{
+    dbic         # Prefix
+    \|           # Seperator
+    [\w]+        # Object id
+    \|           # Seperator
+    [\w:]+       # Classname
+    \|           # Seperator
+    (?:          # Id field
+        \d+
+        |
+        (?:\w+=(?:\d+|new))(?:;\w+=(?:\d+|new))*
+    )
+    \|           # Seperator
+    \w*          # Attribute name (optional)
+}x;
+
 BEGIN {
 	eval "use DBD::SQLite";
-	plan $@ ? (skip_all => 'needs DBD::SQLite for testing') : (tests => 14);
+	plan $@ ? (skip_all => 'needs DBD::SQLite for testing') : (tests => 16);
 }
 
 INIT {
     use lib 't/lib';
-    use Location;
-    use Film;
-    use Actor;
+    use_ok('Test');
 }
 
-is(Film->__driver, "SQLite", "Driver set correctly");
+# Initialize database
+my $schema = Test->initialize;
+ok($schema, "Schema created");
 
-# Create 2 test objects
-my $film1 = Film->create_test_object;
-my $film2 = Film->create_test_object;
+# Create test objects
+my $film1 = $schema->resultset('Film')->create({
+    title   => 'Office Space',
+    comment => 'Funny film',
+});
 
-my $film3  = Film->create_test_object;
-my $actor1 = Actor->create_test_object;
+my $film2 = $schema->resultset('Film')->create({
+    title   => 'Office Space II',
+    comment => 'Funny film',
+});
 
-ok(1,$film1->form_fieldname('title' ,  'o1'));
-ok(1,$film1->form_fieldname('length',  'o1'));
-ok(1,$film1->form_fieldname('comment', 'o1'));
-ok(1,$film2->form_fieldname('title',   'o2'));
-ok(1,$film2->form_fieldname('length',  'o2'));
-ok(1,$film2->form_fieldname('comment', 'o2'));
+my $film3 = $schema->resultset('Film')->create({
+    title   => 'Office Space III',
+    comment => 'Funny film',
+});
 
-# The new objects
-ok(1,Film->form_fieldname('title',     'o3'));
-ok(1,Film->form_fieldname('length',    'o3'));
-ok(1,Film->form_fieldname('comment',   'o3'));
-ok(1,Film->form_fieldname('title',     'o4'));
-ok(1,Film->form_fieldname('length',    'o4'));
-ok(1,Film->form_fieldname('comment',   'o4'));
+my $actor1 = $schema->resultset('Actor')->create({
+    name => 'Samir',
+});
 
-ok(1,Role->form_fieldname(
+# Test as instance methods
+my @instance_method_fieldnames = (
+    $film1->form_fieldname('title' ,  'o1'),
+    $film1->form_fieldname('length',  'o1'),
+    $film1->form_fieldname('comment', 'o1'),
+    $film2->form_fieldname('title',   'o2'),
+    $film2->form_fieldname('length',  'o2'),
+    $film2->form_fieldname('comment', 'o2'),
+);
+# Validate that the fields match the definition
+like($_, $field_definition, "fieldname: $_")
+    foreach @instance_method_fieldnames;
+
+# Test as class methods
+my @class_method_fieldnames = (
+    Test::Film->form_fieldname('title',     'o3'),
+    Test::Film->form_fieldname('length',    'o3'),
+    Test::Film->form_fieldname('comment',   'o3'),
+    Test::Film->form_fieldname('title',     'o4'),
+    Test::Film->form_fieldname('length',    'o4'),
+    Test::Film->form_fieldname('comment',   'o4'),
+);
+# Validate that the fields match the definition
+like($_, $field_definition, "fieldname: $_")
+    foreach @class_method_fieldnames;
+
+
+# Many to many without content
+ok(1,Test::Role->form_fieldname(
     undef,
+    'o3', {
+        film_id  => 'o1',
+        actor_id => 'o2',
+    })
+);
+
+# Many to many with content
+ok(1,Test::Role->form_fieldname(
+    'charater',
     'o3', {
         film_id  => 'o1',
         actor_id => 'o2',

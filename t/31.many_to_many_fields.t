@@ -3,34 +3,35 @@ use Data::Dumper;
 
 BEGIN {
 	eval "use DBD::SQLite";
-	plan $@ ? (skip_all => 'needs DBD::SQLite for testing') : (tests => 2);
+	plan $@ ? (skip_all => 'needs DBD::SQLite for testing') : (tests => 4);
 }
 
 INIT {
     use lib 't/lib';
-    use Location;
-    use Film;
-    use Actor;
+    use_ok('Test');
 }
 
-is(Film->__driver, "SQLite", "Driver set correctly");
+# Initialize database
+my $schema = Test->initialize;
+ok($schema, "Schema created");
 
 my $formdata = {
     # The existing objects
-    Film->form_fieldname('title',   'o1') => 'Title',
-    Film->form_fieldname('length',  'o1') => 99,
-    Film->form_fieldname('comment', 'o1') => 'This is a comment',
-    Role->form_fieldname(undef,     'o3', {
+    Test::Film->form_fieldname('title',   'o1') => 'Black Ninja III',
+    Test::Film->form_fieldname('length',  'o1') => 122,
+    Test::Film->form_fieldname('comment', 'o1') => 'It is night ..',
+    Test::Role->form_fieldname(undef,     'o3', {
         film_id  => 'o1',
         actor_id => 'o2',
-    }) => 'Test',
-    Actor->form_fieldname('name',   'o2') => 'Test actor',
+    }) => 'Dummy value',
+    Test::Actor->form_fieldname('name',   'o2') => 'Chuck Norris',
 };
 print 'Formdata: '.Dumper($formdata);
 
 my @objects = DBIx::Class::FormTools->formdata_to_objects($formdata);
 ok(@objects == 3,"formdata_to_objects: Ojects extracted");
-print 'Final objects: '.Dumper(\@objects);
 
-# Update objects
-map { $_->update || diag("Unable to update object ".Dumper($_)) } @objects;
+print 'Final objects: '.Dumper(\@objects)
+    if $ENV{DBIX_CLASS_FORMTOOLS_DEBUG};
+
+ok((map { $_->insert_or_update } @objects),"Updating objects in db");
