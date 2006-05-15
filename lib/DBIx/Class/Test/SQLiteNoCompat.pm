@@ -9,7 +9,8 @@ DBIx::Class::Test::SQLiteNoCompat - Base class for running Class::DBI tests agai
 	use base 'DBIx::Class::Test::SQLiteNoCompat';
 
 	__PACKAGE__->set_table('test');
-	__PACKAGE__->columns(All => qw/id name film salary/);
+	__PACKAGE__->add_columns(All => qw/id name film salary/);
+    __PACKAGE__->set_primary_key('id');
 
 	sub create_sql { 
 		return q{
@@ -22,7 +23,7 @@ DBIx::Class::Test::SQLiteNoCompat - Base class for running Class::DBI tests agai
 	
 =head1 DESCRIPTION
 
-This provides a simple base class for DBIx::Class::CDBICompat tests using
+This provides a simple base class for DBIx::Class tests using
 SQLite.  Each class for the test should inherit from this, provide a
 create_sql() method which returns a string representing the SQL used to
 create the table for the class, and then call set_table() to create the
