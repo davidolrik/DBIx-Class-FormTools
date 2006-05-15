@@ -3,41 +3,37 @@ use Data::Dumper;
 
 BEGIN {
 	eval "use DBD::SQLite";
-	plan $@ ? (skip_all => 'needs DBD::SQLite for testing') : (tests => 4);
+	plan $@ ? (skip_all => 'needs DBD::SQLite for testing') : (tests => 3);
 }
 
 INIT {
     use lib 't/lib';
-    use_ok('Test');
+    use Location;
+    use Film;
 }
 
-# Initialize database
-my $schema = Test->initialize;
-ok($schema, "Schema created");
+is(Film->__driver, "SQLite", "Driver set correctly");
 
 # Create test objects
-my $film = $schema->resultset('Film')->create({
-    title   => 'Office Space',
-    comment => 'Funny film',
-});
+my $film = Film->create_test_object;
 
 ### Create a form with 1 existing objects with one non existing releation
 my $formdata = {
     # The existing objects
-    $film->form_fieldname('title',         'o1') => 'Office Space - Behind the office',
-    $film->form_fieldname('length',        'o1') => 42,
-    $film->form_fieldname('comment',       'o1') => 'Short film about ...',
-    $film->form_fieldname('location_id',   'o1') => 'o2',
-    Test::Location->form_fieldname('name', 'o2') => 'Initec HQ',
+    $film->form_fieldname('title',       'o1') => 'Title',
+    $film->form_fieldname('length',      'o1') => 99,
+    $film->form_fieldname('comment',     'o1') => 'This is a comment',
+    $film->form_fieldname('location_id', 'o1') => 'o2',
+    Location->form_fieldname('name',     'o2') => 'Somewhere',
 };
 print 'Formdata: '.Dumper($formdata);
 
 my @objects = DBIx::Class::FormTools->formdata_to_objects($formdata);
 ok(@objects == 2,
-   "formdata_to_objects: Existing object with nonexisting relation")
+   "formdata_to_objects: Existing object with existing relation")
         || diag(Dumper(\@objects));
 
-print 'Final objects: '.Dumper(\@objects)
-    if $ENV{DBIX_CLASS_FORMTOOLS_DEBUG};
+print 'Final objects: '.Dumper(\@objects);
 
-ok((map { $_->insert_or_update } @objects),"Updating objects in db");
+ok(map { $_->update } @objects);
+
