@@ -1,5 +1,11 @@
 Revision history for DBIx-Class-FormTools
 
+0.0.4   Mon May 29 23:04:54 CEST 2006
+        - Fixed "string 'new' not an integer" when searching by id for exising
+          objects.
+        - Fixed "object store not cleared" between calls to
+          formdata_to_objects
+
 0.0.3   Tue May  9 12:59:14 CEST 2006
         - Updated for DBIx::Class >= 0.06002
         - Doc cosmetics

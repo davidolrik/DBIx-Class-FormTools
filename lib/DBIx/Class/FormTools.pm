@@ -1,6 +1,6 @@
 package DBIx::Class::FormTools;
 
-our $VERSION = '0.000003';
+our $VERSION = '0.000004';
 
 use strict;
 use warnings;
@@ -159,8 +159,12 @@ C<object_id> which is user definable and can be whatever you like.
 
     my $name_film  = $film->form_fieldname('title', 'o1');
     my $name_actor = $actor->form_fieldname('name', 'o2');
-    my $name_role  = MyNamespace::Role->form_fieldname(undef,'o3', { film_id => 'o1', actor_id => 'o2' });
-    my $name_role  = MyNamespace::Role->form_fieldname('charater','o3', { film_id => 'o1', actor_id => 'o2' });
+    my $name_role  = MyNamespace::Role->form_fieldname(
+        undef,'o3', { film_id => 'o1', actor_id => 'o2' }
+    );
+    my $name_role  = MyNamespace::Role->form_fieldname(
+        'charater','o3', { film_id => 'o1', actor_id => 'o2' }
+    );
 
 Creates a unique form field name for use in an HTML form.
 
@@ -224,12 +228,17 @@ sub form_fieldname
 
     my @objects = DBIx::Class::FormTools->formdata_to_objects($formdata);
 
-Turn formdata in the form of a C<HASHREF> into an C<ARRAY> of C<DBIx::Class> objects.
+Turn formdata in the form of a C<HASHREF> into an C<ARRAY> of C<DBIx::Class>
+objects.
 
 =cut
 sub formdata_to_objects
 {
     my ($self,$formdata) = @_;
+
+    # Cleanup old objects
+    $self->_objects({});
+    $self->_formdata({});
 
     # Extract all dbic fields
     my @dbic_formkeys = grep { /^dbic\|/ } keys %$formdata;
@@ -278,6 +287,10 @@ sub formdata_to_objects
         );        
         push(@objects,$object);
     }
+
+    # Cleanup old objects
+    $self->_objects({});
+    $self->_formdata({});
 
     return(@objects);
 }
@@ -373,7 +386,7 @@ sub _inflate_object
 
     # Lookup in object in db
     # FIXME: Maybe add check for 'new' in id and skip if it exists
-    unless ( $object ) {
+    unless ( $object || $id eq 'new' ) {
         $object = $class->find($id);
     }
 
