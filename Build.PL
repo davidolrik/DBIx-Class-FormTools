@@ -10,8 +10,7 @@ my $builder = Module::Build->new(
     requires => {
         'Test::More'    => 0,
         'version'       => '0.50',
-        'DBIx::Class'   => '0.04001',
-#       'HTML::Widget'  => '1.01',
+        'DBIx::Class'   => '0.06002',
     },
     add_to_cleanup      => [ 'DBIx-Class-FormTools-*' ],
 );
