@@ -1,19 +1,23 @@
 use Test::More;
-use Data::Dumper;
+use Data::Dump 'dump';
 
 BEGIN {
     eval "use DBD::SQLite";
-    plan $@ ? (skip_all => 'needs DBD::SQLite for testing') : (tests => 4);
+    plan $@ ? (skip_all => 'needs DBD::SQLite for testing') : (tests => 9);
 }
 
 INIT {
     use lib 't/lib';
+    use_ok( 'DBIx::Class::FormTools' );
     use_ok('Test');
 }
 
 # Initialize database
 my $schema = Test->initialize;
 ok($schema, "Schema created");
+
+my $helper = DBIx::Class::FormTools->new({ schema => $schema });
+ok($helper,"Helper object created");
 
 # Create test objects
 my $film = $schema->resultset('Film')->create({
@@ -28,21 +32,21 @@ my $location = $schema->resultset('Location')->create({
 ### Create a form with 1 existing objects with one existing releation
 my $formdata = {
     # The existing objects
-    $film->form_fieldname('title',       'o1') => 'Office Space II',
-    $film->form_fieldname('length',      'o1') => 142,
-    $film->form_fieldname('comment',     'o1') => 'Really funny film',
-    $film->form_fieldname('location_id', 'o1') => $location->id,
+    $helper->fieldname($film, 'title',       'o1') => 'Office Space II',
+    $helper->fieldname($film, 'length',      'o1') => 142,
+    $helper->fieldname($film, 'comment',     'o1') => 'Really funny film',
+    $helper->fieldname($film, 'location_id', 'o1') => $location->id,
 };
-print 'Formdata: '.Dumper($formdata);
+ok(1,"Formdata created:\n".dump($formdata));
 
+my @objects = $helper->formdata_to_objects($formdata);
+ok(@objects == 1, 'Excacly one object retrieved');
+ok(ref($objects[0]) eq 'Schema::Film', 'Object is a Film');
+ok(ref($objects[0]->location_id) eq 'Schema::Location', 'Object has a Location');
 
-my @objects = DBIx::Class::FormTools->formdata_to_objects($formdata);
-ok(@objects == 1
-   && ref($objects[0]->location_id) eq 'Test::Location',
-   "formdata_to_objects: Extracted one existing object with one existing relation"
-   );
-
-print 'Final objects: '.Dumper(\@objects)
+print 'Final objects: '.dump(\@objects) ."\n"
     if $ENV{DBIX_CLASS_FORMTOOLS_DEBUG};
 
 ok((map { $_->insert_or_update } @objects),"Updating objects in db");
+
+1;

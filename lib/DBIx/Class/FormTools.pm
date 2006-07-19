@@ -7,14 +7,16 @@ use warnings;
 
 use Carp;
 
-use base qw/Class::Data::Inheritable/;
+use Moose;
 
-__PACKAGE__->mk_classdata('_objects'   => {});
-__PACKAGE__->mk_classdata('_formdata'  => {});
+has 'schema'    => (is => 'rw', isa => 'Ref');
+has '_objects'  => (is => 'rw', isa => 'HashRef');
+has '_formdata' => (is => 'rw', isa => 'HashRef');
+
 
 =head1 NAME
 
-DBIx::Class::FormTools - Utility module for building forms with multiple related L<DBIx::Class> objects.
+DBIx::Class::FormTools - Helper module for building forms with multiple related L<DBIx::Class> objects.
 
 =head1 VERSION
 
@@ -71,40 +73,44 @@ C<Role> is a many to many relation between C<Film> and C<Actor>.
     __PACKAGE__->belongs_to(actor_id => 'MySchema::Actor');
 
 
-=head2 In your Model class
+=head2 In your Controller
 
-    use base qw/DBIx::Class/;
-    __PACKAGE__->load_components(qw/PK::Auto::Pg Core FormTools/);
+    use DBIx::Class::FormTools;
+    
+    my $helper = DBIx::Class::FormTools->({ schema => $schema });
+    
 
 =head2 In your view - L<HTML::Mason> example
 
     <%init>
     my $film  = $schema->resultset('Film')->find(42);
     my $actor = $schema->resultset('Actor')->find(24);
+    my $role  = $schema->resultset('Role')->new;
+    
     </%init>
     <form>
         <input
-            name="<% $film->form_fieldname('title', 'o1') => 'Title' %>"
+            name="<% $helper->fieldname($film, 'title', 'o1') => 'Title' %>"
             type="text"
             value="<% $film->title %>"
         />
         <input
-            name="<% $film->form_fieldname('length', 'o1') %>"
+            name="<% $helper->fieldname($film, 'length', 'o1') %>"
             type="text"
             value="<% $film->length %>"
         />
         <input
-            name="<% $film->form_fieldname('comment', 'o1') %>"
+            name="<% $helper->fieldname($film, 'comment', 'o1') %>"
             type="text"
             value="<% $film->comment %>"
         />
         <input
-            name="<% $actor->form_fieldname('name', 'o2') %>"
+            name="<% $helper->fieldname($actor, 'name', 'o2') %>"
             type="text"
             value="<% $actor->name %>"
         />
         <input
-            name="<% MyNamespace::Role->form_fieldname(undef, 'o3', {
+            name="<% $helper->fieldname($role, undef, 'o3', {
                 film_id  => 'o1',
                 actor_id => 'o2'
             }) %>"
@@ -116,7 +122,7 @@ C<Role> is a many to many relation between C<Film> and C<Actor>.
 
 =head2 In your controller (or cool helper module, used in your controller)
 
-    my @objects = DBIx::Class::FormTools->formdata_to_objects($querystring);
+    my @objects = $helper->formdata_to_objects(\%querystring);
     foreach my $object ( @objects ) {
         # Assert and Manupulate $object as you like
         $object->insert_or_update;
@@ -155,15 +161,38 @@ C<object_id> which is user definable and can be whatever you like.
 
 =head1 METHODS
 
-=head2 C<form_fieldname($accessor, $object_id, $foreign_object_ids)>
+=head2 C<new>
 
-    my $name_film  = $film->form_fieldname('title', 'o1');
-    my $name_actor = $actor->form_fieldname('name', 'o2');
-    my $name_role  = MyNamespace::Role->form_fieldname(
-        undef,'o3', { film_id => 'o1', actor_id => 'o2' }
+Arguments: { schema => $schema }
+
+Creates new form helper
+
+    my $helper = DBIx::Class::FormTools->new({ schema => $schema });
+
+=cut
+
+=head2 C<schema>
+
+Arguments: None
+
+Retrieves the schema
+
+    my $helper = $helper->schema;
+
+=cut
+
+
+=head2 C<fieldname>
+
+Arguments: $accessor, $object_id, $foreign_object_ids
+
+    my $name_film  = $helper->fieldname($film, 'title', 'o1');
+    my $name_actor = $helper->fieldname($actor, 'name', 'o2');
+    my $name_role  = $helper->fieldname($role, undef,'o3',
+        { film_id => 'o1', actor_id => 'o2' }
     );
-    my $name_role  = MyNamespace::Role->form_fieldname(
-        'charater','o3', { film_id => 'o1', actor_id => 'o2' }
+    my $name_role  = $helper->fieldname($role,'charater','o3',
+        { film_id => 'o1', actor_id => 'o2' }
     );
 
 Creates a unique form field name for use in an HTML form.
@@ -186,17 +215,17 @@ connect objects with each-other as seen in the above example.
 =back
 
 =cut
-sub form_fieldname
+sub fieldname
 {
-    my ($self,$accessor,$object_id,$foreign_object_ids) = @_;
+    my ($self,$object,$attribute,$object_id,$foreign_object_ids) = @_;
 
     # Get class name
-    my $class = ref $self || $self;
-
-    my @primary_keys  = $class->primary_columns;
+    my $class = $object->source_name;
+    
+    my @primary_keys  = $object->primary_columns;
     
     my %relationships
-        = ( map { $_,$class->relationship_info($_) } $class->relationships );
+        = ( map { $_,$object->relationship_info($_) } $object->relationships );
 
     my %id_fields = ();
     foreach my $primary_key ( @primary_keys ) {
@@ -207,7 +236,9 @@ sub form_fieldname
         # Field is local
         else {
             $id_fields{$primary_key}
-                = ( ref($self) ) ? $self->$primary_key : 'new';
+                = ( ref($object) &&  $object->$primary_key )
+                ? $object->$primary_key
+                : 'new';
         }
     }
 
@@ -217,19 +248,21 @@ sub form_fieldname
         $object_id,
         $class,
         join(q{;}, map { "$_=".$id_fields{$_} } keys %id_fields),
-        ($accessor || ''),
+        ($attribute || ''),
     );
 
     return($fieldname);
 }
 
 
-=head2 C<formdata_to_objects($formdata)>
+=head2 C<formdata_to_objects>
 
-    my @objects = DBIx::Class::FormTools->formdata_to_objects($formdata);
+Arguments: \%formdata
 
-Turn formdata in the form of a C<HASHREF> into an C<ARRAY> of C<DBIx::Class>
-objects.
+    my @objects = $helper->formdata_to_objects($formdata);
+
+Turn formdata(a querystring) in the form of a C<HASHREF> into an C<ARRAY> of
+C<DBIx::Class> objects.
 
 =cut
 sub formdata_to_objects
@@ -292,8 +325,10 @@ sub formdata_to_objects
     $self->_objects({});
     $self->_formdata({});
 
+#    print dump(\@objects);
     return(@objects);
 }
+
 
 sub _flatten_id
 {
@@ -301,6 +336,7 @@ sub _flatten_id
     
     return join(';', map { $_.'='.$id->{$_} } sort keys %$id);
 }
+
 
 sub _inflate_object
 {
@@ -326,15 +362,16 @@ sub _inflate_object
         && $self->_objects->{$class}->{$oid};
 
     # Inflate foreign fields that map to a *single* column
-    my $relationships
-        = { map { $_,$class->relationship_info($_) } $class->relationships };
-    
-    my $schema = $class->class_resolver;
+    my $relationships = {
+        map { $_,$self->schema->source($class)->relationship_info($_) } 
+        $self->schema->source($class)->relationships
+    };
     foreach my $foreign_accessor ( keys %$relationships ) {
         # Resolve foreign class name
-        my $foreign_class = $schema->class(
-            $relationships->{$foreign_accessor}->{'class'}
-        );
+        my $foreign_class = $self->schema->source($relationships
+                                                  ->{$foreign_accessor}
+                                                  ->{'class'}
+                                                  )->source_name;
 
         my $foreign_relation_type = $relationships->{$foreign_accessor}
                                                   ->{'attrs'}
@@ -387,12 +424,13 @@ sub _inflate_object
     # Lookup in object in db
     # FIXME: Maybe add check for 'new' in id and skip if it exists
     unless ( $object || $id eq 'new' ) {
-        $object = $class->find($id);
+        my $source = $self->schema->source($class)->source_name;
+        $object = $self->schema->resultset($source)->find($id);
     }
 
     # Still no object, the create it
     unless ( $object ) {
-        $object = $class->create($attributes);
+        $object = $self->schema->resultset($class)->create($attributes);
     }
 
     # If we have a object update it with form data, if it exists
@@ -408,6 +446,10 @@ sub _inflate_object
 
 1; # Magic true value required at end of module
 __END__
+
+=head2 meta
+
+This is a method which provides access to the current class's metaclass.
 
 =head1 CAVEATS
 
@@ -426,10 +468,10 @@ before actually storing them in the database.
 
 =head2 Automatic Primary Key generation
 
-You must use on of the C<DBIx::Class::PK::Auto::*> classes, otherwise the
-C<formdata_to_objects> will fail when creating new objects, as it is unable to
-determine the value for the primary key, and therefore is unable to connect
-the object to any related objects in the form.
+You must use C<DBIx::Class::PK::Auto>, otherwise the C<formdata_to_objects>
+will fail when creating new objects, as it is unable to determine the value
+for the primary key, and therefore is unable to connect the object to any
+related objects in the form.
 
 =head1 BUGS AND LIMITATIONS
 

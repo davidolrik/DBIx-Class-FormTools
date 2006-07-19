@@ -1,13 +1,14 @@
 use Test::More;
-use Data::Dumper;
+use Data::Dump 'dump';
 
 BEGIN {
 	eval "use DBD::SQLite";
-	plan $@ ? (skip_all => 'needs DBD::SQLite for testing') : (tests => 4);
+	plan $@ ? (skip_all => 'needs DBD::SQLite for testing') : (tests => 11);
 }
 
 INIT {
     use lib 't/lib';
+    use_ok( 'DBIx::Class::FormTools' );
     use_ok('Test');
 }
 
@@ -15,45 +16,65 @@ INIT {
 my $schema = Test->initialize;
 ok($schema, "Schema created");
 
+my $helper = DBIx::Class::FormTools->new({ schema => $schema });
+ok($helper,"Helper object created");
+
 # Create test objects
 my $film1 = $schema->resultset('Film')->create({
     title   => 'Office Space',
     comment => 'Funny film',
 });
 
+
 my $film2 = $schema->resultset('Film')->create({
     title   => 'Office Space II',
     comment => 'Really funny film',
+});
+
+my $film3 = $schema->resultset('Film')->new({
+    title   => 'Kill Bill',
+    comment => 'Pussy Wagon',
+});
+
+my $film4 = $schema->resultset('Film')->new({
+    title   => 'Donnie Darko',
+    comment => 'Watch the sky for engines',
 });
 
 
 # Create a form with 2 existing objects and 2 new objects
 my $formdata = {
     # The existing objects
-    $film1->form_fieldname('title' ,  'o1') => 'Southpark',
-    $film1->form_fieldname('length',  'o1') => 42,
-    $film1->form_fieldname('comment', 'o1') => 'Damn it!',
-    $film2->form_fieldname('title',   'o2') => 'Pulp Fiction',
-    $film2->form_fieldname('length',  'o2') => 120,
-    $film2->form_fieldname('comment', 'o2') => "Zed's dead baby...",
+    $helper->fieldname($film1, 'title' ,  'o1') => 'Southpark',
+    $helper->fieldname($film1, 'length',  'o1') => 42,
+    $helper->fieldname($film1, 'comment', 'o1') => 'Damn it!',
+    $helper->fieldname($film2, 'title',   'o2') => 'Pulp Fiction',
+    $helper->fieldname($film2, 'length',  'o2') => 120,
+    $helper->fieldname($film2, 'comment', 'o2') => "Zed's dead baby...",
 
     # The new objects
-    Test::Film->form_fieldname('title',     'o3') => 'Kill bill',
-    Test::Film->form_fieldname('length',    'o3') => 99,
-    Test::Film->form_fieldname('comment',   'o3') => 'Pussy wagon',
-    Test::Film->form_fieldname('title',     'o4') => 'Donnie Darko',
-    Test::Film->form_fieldname('length',    'o4') => 123,
-    Test::Film->form_fieldname('comment',   'o4') => 'Watch the sky for engines',
+    $helper->fieldname($film3, 'title',     'o3') => 'Kill bill',
+    $helper->fieldname($film3, 'length',    'o3') => 99,
+    $helper->fieldname($film3, 'comment',   'o3') => 'Pussy wagon',
+    $helper->fieldname($film4, 'title',     'o4') => 'Donnie Darko',
+    $helper->fieldname($film4, 'length',    'o4') => 123,
+    $helper->fieldname($film4, 'comment',   'o4') => 'Watch the sky for engines',
 };
+ok(1,"Formdata created:\n".dump($formdata));
 
-print 'Formdata: '.Dumper($formdata);
 
 # Extract all 4 objects
-my @objects = DBIx::Class::FormTools->formdata_to_objects($formdata);
-ok((grep { ref($_) eq 'Test::Film' } @objects) == 4,
-   "formdata_to_objects: Extracted ".@objects." objects");
+my @objects = $helper->formdata_to_objects($formdata);
+ok(@objects == 4, 'Excacly four object retrieved');
+ok(ref($objects[0]) eq 'Schema::Film', 'Object is a Film');
+ok(ref($objects[1]) eq 'Schema::Film', 'Object is a Film');
+ok(ref($objects[2]) eq 'Schema::Film', 'Object is a Film');
+ok(ref($objects[3]) eq 'Schema::Film', 'Object is a Film');
+
 
 print 'Final objects: '.Dumper(\@objects)
     if $ENV{DBIX_CLASS_FORMTOOLS_DEBUG};
 
-  ok((map { $_->insert_or_update } @objects),"Updating objects in db");
+ok((map { $_->insert_or_update } @objects),"Updating objects in db");
+
+1;

@@ -20,6 +20,6 @@ __PACKAGE__->add_columns(qw[
 ]);
 __PACKAGE__->set_primary_key('id');
 
-__PACKAGE__->has_many(roles => 'Role', 'actor_id');
+__PACKAGE__->has_many(roles => 'Schema::Role', 'actor_id');
 
 1;

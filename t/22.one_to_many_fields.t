@@ -1,13 +1,14 @@
 use Test::More;
-use Data::Dumper;
+use Data::Dump 'dump';
 
 BEGIN {
 	eval "use DBD::SQLite";
-	plan $@ ? (skip_all => 'needs DBD::SQLite for testing') : (tests => 4);
+	plan $@ ? (skip_all => 'needs DBD::SQLite for testing') : (tests => 9);
 }
 
 INIT {
     use lib 't/lib';
+    use_ok( 'DBIx::Class::FormTools' );
     use_ok('Test');
 }
 
@@ -15,24 +16,38 @@ INIT {
 my $schema = Test->initialize;
 ok($schema, "Schema created");
 
+my $helper = DBIx::Class::FormTools->new({ schema => $schema });
+ok($helper,"Helper object created");
+
+my $film = $schema->resultset('Film')->new({
+    title   => 'Office Space',
+    comment => 'Funny film',
+});
+
+my $location = $schema->resultset('Location')->new({
+    name    => 'Initec',
+});
+
+
 ### Create a form with 1 existing objects with one non existing releation
 my $formdata = {
     # The existing objects
-    Test::Film->form_fieldname('title',       'o1') => 'Sound of music',
-    Test::Film->form_fieldname('length',      'o1') => 100,
-    Test::Film->form_fieldname('comment',     'o1') => 'The hills are alive...',
-    Test::Film->form_fieldname('location_id', 'o1') => 'o2',
-    Test::Location->form_fieldname('name',    'o2') => 'Somewhere over the rainbow',
+    $helper->fieldname($film, 'title',      'o1') => 'Sound of music',
+    $helper->fieldname($film, 'length',     'o1') => 100,
+    $helper->fieldname($film, 'comment',    'o1') => 'The hills are alive...',
+    $helper->fieldname($film, 'location_id','o1') => 'o2',
+    $helper->fieldname($location, 'name',   'o2') => 'Somewhere over the rainbow',
 };
+ok(1,"Formdata created:\n".dump($formdata));
 
-print 'Formdata: '.Dumper($formdata);
+my @objects = $helper->formdata_to_objects($formdata);
+ok(@objects == 2, 'Excacly two object retrieved');
+ok(ref($objects[0]) eq 'Schema::Film', 'Object is a Film');
+ok(ref($objects[0]->location_id) eq 'Schema::Location', 'Object has a Location');
 
-my @objects = DBIx::Class::FormTools->formdata_to_objects($formdata);
-ok(@objects == 2,
-   "formdata_to_objects: Existing object with existing relation")
-        || diag(Dumper(\@objects));
-
-print 'Final objects: '.Dumper(\@objects)
+print 'Final objects: '.dump(\@objects) ."\n"
     if $ENV{DBIX_CLASS_FORMTOOLS_DEBUG};
 
 ok((map { $_->insert_or_update } @objects),"Updating objects in db");
+
+1;
