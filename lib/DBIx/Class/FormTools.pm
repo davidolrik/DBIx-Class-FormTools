@@ -5,8 +5,9 @@ our $VERSION = '0.000005';
 use strict;
 use warnings;
 
-use Carp;
+#use DBIx::Class::FormTools::Form;
 
+use Carp;
 use Moose;
 
 has 'schema'    => (is => 'rw', isa => 'Ref');
@@ -23,6 +24,11 @@ DBIx::Class::FormTools - Helper module for building forms with multiple related 
 This document describes DBIx::Class::FormTools version 0.0.5
 
 =head1 SYNOPSIS
+
+=head2 This is ALPHA software
+
+There may be bugs. The interface may change. Do not use this for anything
+important just yet.
 
 =head2 Prerequisites
 
@@ -90,7 +96,7 @@ C<Role> is a many to many relation between C<Film> and C<Actor>.
     </%init>
     <form>
         <input
-            name="<% $helper->fieldname($film, 'title', 'o1') => 'Title' %>"
+            name="<% $helper->fieldname($film, 'title', 'o1') %>"
             type="text"
             value="<% $film->title %>"
         />
@@ -175,7 +181,7 @@ Creates new form helper
 
 Arguments: None
 
-Retrieves the schema
+Returns the schema
 
     my $helper = $helper->schema;
 
@@ -184,7 +190,7 @@ Retrieves the schema
 
 =head2 C<fieldname>
 
-Arguments: $accessor, $object_id, $foreign_object_ids
+Arguments: $object, $accessor, $object_id, $foreign_object_ids
 
     my $name_film  = $helper->fieldname($film, 'title', 'o1');
     my $name_actor = $helper->fieldname($actor, 'name', 'o2');
@@ -198,6 +204,10 @@ Arguments: $accessor, $object_id, $foreign_object_ids
 Creates a unique form field name for use in an HTML form.
 
 =over
+
+=item C<$object>
+
+The object you wish to create a key for.
 
 =item C<$accessor>
 
@@ -247,7 +257,7 @@ sub fieldname
         'dbic',
         $object_id,
         $class,
-        join(q{;}, map { "$_=".$id_fields{$_} } keys %id_fields),
+        join(q{;}, map { "$_:".$id_fields{$_} } keys %id_fields),
         ($attribute || ''),
     );
 
@@ -293,7 +303,7 @@ sub formdata_to_objects
         # Build id field
         my %id;
         foreach my $field ( split(/;/,$id) ) {
-            my ($key,$value) = split(/=/,$field);
+            my ($key,$value) = split(/:/,$field);
             $id{$key} = $value;
         }
 
@@ -334,7 +344,7 @@ sub _flatten_id
 {
     my ($id) = @_;
     
-    return join(';', map { $_.'='.$id->{$_} } sort keys %$id);
+    return join(';', map { $_.':'.$id->{$_} } sort keys %$id);
 }
 
 
@@ -388,14 +398,14 @@ sub _inflate_object
                                  ->{$oid}
                                  ->{'form_id'}
                                  ->{$foreign_accessor} )
-                        ? $self->_formdata
-                               ->{$oid}
-                               ->{'form_id'}
-                               ->{$foreign_accessor}
-                        : $self->_formdata
-                               ->{$oid}
-                               ->{'content'}
-                               ->{$foreign_accessor};
+                        ?   $self->_formdata
+                                 ->{$oid}
+                                 ->{'form_id'}
+                                 ->{$foreign_accessor}
+                        :   $self->_formdata
+                                 ->{$oid}
+                                 ->{'content'}
+                                 ->{$foreign_accessor};
         # No id found, no inflate needed
         next unless $foreign_oid;
 
@@ -422,10 +432,11 @@ sub _inflate_object
     my $object = $self->_objects->{$class}->{$oid};
 
     # Lookup in object in db
-    # FIXME: Maybe add check for 'new' in id and skip if it exists
-    unless ( $object || $id eq 'new' ) {
-        my $source = $self->schema->source($class)->source_name;
-        $object = $self->schema->resultset($source)->find($id);
+    unless ( $object ) {
+        my $source = $self->schema->source($class);
+        # Don't lookup object if id is 'new'
+        $object = $self->schema->resultset($source->source_name)->find($id)
+            unless grep { $id->{$_} eq 'new' } $source->primary_columns;
     }
 
     # Still no object, the create it
@@ -443,6 +454,16 @@ sub _inflate_object
 
     return($object);
 }
+
+
+# sub form
+# {
+#     my $self = shift;
+#     my $form = DBIx::Class::FormTools::Form->new({});
+#     
+#     return($form);
+# }
+
 
 1; # Magic true value required at end of module
 __END__
@@ -497,11 +518,13 @@ modify it under the same terms as Perl itself. See L<perlartistic>.
 
 =over
 
-=item * Create methods for building html elements using some thing like
-        L<HTML::Widget>.
+=item * Add form object, that keeps track of object ids automagickly.
+
+=item * Add field generator, that can generate HTML/XHTML fields based on the
+objects in the form object.
 
 =back
 
 =head1 SEE ALSO
 
-L<DBIx::Class>, L<DBIx::Class::PK::Auto>
+L<DBIx::Class> L<DBIx::Class::PK::Auto>

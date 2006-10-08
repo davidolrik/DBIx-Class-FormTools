@@ -12,7 +12,7 @@ my $field_definition = qr{
     (?:          # Id field
         \d+
         |
-        (?:\w+=(?:\d+|new))(?:;\w+=(?:\d+|new))*
+        (?:\w+:(?:\d+|new))(?:;\w+:(?:\d+|new))*
     )
     \|           # Seperator
     \w*          # Attribute name (optional)

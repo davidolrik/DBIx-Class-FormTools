@@ -34,7 +34,7 @@ my $role = $schema->resultset('Role')->new({
 
 my $formdata = {
     # The existing objects
-    $helper->fieldname($film,  'title',    'o1') => 'Timme on the run',
+    $helper->fieldname($film,  'title',    'o1') => 'Timmy on the run',
     $helper->fieldname($film,  'length',   'o1') => 99,
     $helper->fieldname($film,  'comment',  'o1') => 'TIMMY!!',
     $helper->fieldname($actor, 'name',    'o2') => 'Stan Marsh',

@@ -25,7 +25,6 @@ my $film1 = $schema->resultset('Film')->create({
     comment => 'Funny film',
 });
 
-
 my $film2 = $schema->resultset('Film')->create({
     title   => 'Office Space II',
     comment => 'Really funny film',

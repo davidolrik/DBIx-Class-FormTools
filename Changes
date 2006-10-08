@@ -5,6 +5,8 @@ Revision history for DBIx-Class-FormTools
         - Redesigned module as a helper. Warning: Incompatible with 0.0.4
         - Added passthrough Makefile.PL
         - Updated docs to reflect changes
+        - Use ':' as id seperator instead of '=' in primary key
+        - Always add colon seperated primary key list in 'fieldname'
 
 0.0.4   Mon May 29 23:04:54 CEST 2006
         - Fixed "string 'new' not an integer" when searching by id for exising
