@@ -230,7 +230,7 @@ sub fieldname
     my ($self,$object,$attribute,$object_id,$foreign_object_ids) = @_;
 
     # Get class name
-    my $class = $object->source_name;
+    my $class = $object->source_name || ref($object);
     
     my @primary_keys  = $object->primary_columns;
     
@@ -240,7 +240,7 @@ sub fieldname
     my %id_fields = ();
     foreach my $primary_key ( @primary_keys ) {
         # Field is foreign key
-        if ( exists $relationships{$primary_key} ) {;
+        if ( exists $relationships{$primary_key} ) {
             $id_fields{$primary_key} = $foreign_object_ids->{$primary_key};
         }
         # Field is local

@@ -1,5 +1,9 @@
 Revision history for DBIx-Class-FormTools
 
+0.0.6   Wed Sep 26 22:33:44 CEST 2007
+        - Fixed fieldname bug we now use the ref name of the class when
+          source_name returns undef
+
 0.0.5   Wed Jul 19 14:14:21 CEST 2006
         - Fixed version number in docs
         - Redesigned module as a helper. Warning: Incompatible with 0.0.4
