@@ -1,5 +1,4 @@
 use Test::More;
-use Data::Dumper;
 use DBIx::Class::FormTools;
 
 my $field_definition = qr{

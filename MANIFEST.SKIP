@@ -3,6 +3,8 @@
 \bCVS\b
 ,v$
 \B\.svn\b
+\B\.git\b
+\B\.gitignore\b
 
 # Avoid Makemaker generated and utility files.
 \bMakefile$
@@ -23,3 +25,9 @@
 \.bak$
 \#$
 \b\.#
+
+# Avoid test temp files
+^t/tmp
+
+# Avoid dist files
+^DBIx-Class-FormTools-.+\.tar\.gz

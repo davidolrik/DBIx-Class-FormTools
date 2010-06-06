@@ -12,15 +12,14 @@ our $dsn    = "dbi:SQLite:${dbfile}";
 our $schema = Schema->connect(
     $dsn,
     'djo',
-    'lalle',
+    'djo',
     { AutoCommit => 0 }
 );
 
 sub initialize
 {
-    
     unlink($dbfile) if -e './t/tmp/test.db';
-
+    mkdir('./t/tmp/') unless -d './t/tmp';
 
     my $dbh = $schema->storage->dbh;
 

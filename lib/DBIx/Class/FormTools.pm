@@ -1,6 +1,6 @@
 package DBIx::Class::FormTools;
 
-our $VERSION = '0.000006';
+our $VERSION = '0.000007';
 
 use strict;
 use warnings;
@@ -335,7 +335,6 @@ sub formdata_to_objects
     $self->_objects({});
     $self->_formdata({});
 
-#    print dump(\@objects);
     return(@objects);
 }
 

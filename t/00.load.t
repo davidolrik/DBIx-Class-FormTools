@@ -1,5 +1,4 @@
 use Test::More;
-use Data::Dumper;
 
 BEGIN {
     eval "use DBD::SQLite";

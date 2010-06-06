@@ -14,6 +14,9 @@ my $build = Module::Build->new(
         'DBIx::Class'   => '0.06003',
         'Moose'         => '0.11',
     },
+    build_requires      => {
+        'Data::Dump'    => 0,
+    },
     add_to_cleanup      => [ 'DBIx-Class-FormTools-*' ],
     create_makefile_pl  => 'passthrough',
 );

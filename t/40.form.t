@@ -1,5 +1,5 @@
 use Test::More;
-use Data::Dump qw[dump];
+use Data::Dump 'pp';
 
 BEGIN {
     eval "use DBD::SQLite";
@@ -45,14 +45,14 @@ ok(1);
 # $form->add_object($actor);
 # $form->add_object($role);
 # 
-# # print dump($form);
+# # print pp($form);
 # 
 # 
 # print $form->start_tag . "\n";
 # 
-# print dump($form->tags) . "\n";
+# print pp($form->tags) . "\n";
 # 
-# print "[". dump($form->field->input) ."]\n";
+# print "[". pp($form->field->input) ."]\n";
 
 # --
 

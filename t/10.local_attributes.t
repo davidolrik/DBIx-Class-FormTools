@@ -1,5 +1,5 @@
 use Test::More;
-use Data::Dump 'dump';
+use Data::Dump 'pp';
 
 BEGIN {
 	eval "use DBD::SQLite";
@@ -59,7 +59,7 @@ my $formdata = {
     $helper->fieldname($film4, 'length',    'o4') => 123,
     $helper->fieldname($film4, 'comment',   'o4') => 'Watch the sky for engines',
 };
-ok(1,"Formdata created:\n".dump($formdata));
+ok(1,"Formdata created:\n".pp($formdata));
 
 
 # Extract all 4 objects
@@ -71,7 +71,7 @@ ok(ref($objects[2]) eq 'Schema::Film', 'Object is a Film');
 ok(ref($objects[3]) eq 'Schema::Film', 'Object is a Film');
 
 
-print 'Final objects: '.Dumper(\@objects)
+print 'Final objects: '.pp(\@objects)
     if $ENV{DBIX_CLASS_FORMTOOLS_DEBUG};
 
 ok((map { $_->insert_or_update } @objects),"Updating objects in db");
