@@ -42,7 +42,7 @@ ok(1,"Formdata created:\n".pp($formdata));
 my @objects = $helper->formdata_to_objects($formdata);
 ok(@objects == 1, 'Excacly one object retrieved');
 ok(ref($objects[0]) eq 'Schema::Film', 'Object is a Film');
-ok(ref($objects[0]->location_id) eq 'Schema::Location', 'Object has a Location');
+ok(ref($objects[0]->location) eq 'Schema::Location', 'Object has a Location');
 
 print 'Final objects: '.pp(\@objects) ."\n"
     if $ENV{DBIX_CLASS_FORMTOOLS_DEBUG};

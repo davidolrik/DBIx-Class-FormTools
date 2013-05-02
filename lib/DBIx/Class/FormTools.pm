@@ -1,7 +1,8 @@
 package DBIx::Class::FormTools;
 
-our $VERSION = '0.000007';
+our $VERSION = '0.000008_01';
 
+use 5.10.1;
 use strict;
 use warnings;
 
@@ -10,10 +11,14 @@ use warnings;
 use Carp;
 use Moose;
 
+use Data::Dump 'pp';
+use Debug::ShowStuff ':all';
+
 has 'schema'    => (is => 'rw', isa => 'Ref');
-has '_objects'  => (is => 'rw', isa => 'HashRef');
 has '_formdata' => (is => 'rw', isa => 'HashRef');
 
+has '_objects'  => (is => 'rw', isa => 'HashRef');
+has '_delayed_attributes' => (is => 'rw', isa => 'HashRef');
 
 =head1 NAME
 
@@ -21,14 +26,13 @@ DBIx::Class::FormTools - Helper module for building forms with multiple related 
 
 =head1 VERSION
 
-This document describes DBIx::Class::FormTools version 0.0.5
+This document describes DBIx::Class::FormTools version 0.0.8
 
 =head1 SYNOPSIS
 
-=head2 This is ALPHA software
+=head2 This is BETA software
 
-There may be bugs. The interface may change. Do not use this for anything
-important just yet.
+There may be bugs. The interface might change (But the it hasn't changed in a long time, so it is probably safe to use).
 
 =head2 Prerequisites
 
@@ -83,7 +87,7 @@ C<Role> is a many to many relation between C<Film> and C<Actor>.
 
     use DBIx::Class::FormTools;
     
-    my $helper = DBIx::Class::FormTools->({ schema => $schema });
+    my $formtool = DBIx::Class::FormTools->new({ schema => $schema });
     
 
 =head2 In your view - L<HTML::Mason> example
@@ -96,27 +100,27 @@ C<Role> is a many to many relation between C<Film> and C<Actor>.
     </%init>
     <form>
         <input
-            name="<% $helper->fieldname($film, 'title', 'o1') %>"
+            name="<% $formtool->fieldname($film, 'title', 'o1') %>"
             type="text"
             value="<% $film->title %>"
         />
         <input
-            name="<% $helper->fieldname($film, 'length', 'o1') %>"
+            name="<% $formtool->fieldname($film, 'length', 'o1') %>"
             type="text"
             value="<% $film->length %>"
         />
         <input
-            name="<% $helper->fieldname($film, 'comment', 'o1') %>"
+            name="<% $formtool->fieldname($film, 'comment', 'o1') %>"
             type="text"
             value="<% $film->comment %>"
         />
         <input
-            name="<% $helper->fieldname($actor, 'name', 'o2') %>"
+            name="<% $formtool->fieldname($actor, 'name', 'o2') %>"
             type="text"
             value="<% $actor->name %>"
         />
         <input
-            name="<% $helper->fieldname($role, undef, 'o3', {
+            name="<% $formtool->fieldname($role, undef, 'o3', {
                 film_id  => 'o1',
                 actor_id => 'o2'
             }) %>"
@@ -128,7 +132,7 @@ C<Role> is a many to many relation between C<Film> and C<Actor>.
 
 =head2 In your controller (or cool helper module, used in your controller)
 
-    my @objects = $helper->formdata_to_objects(\%querystring);
+    my @objects = $formtool->formdata_to_objects(\%querystring);
     foreach my $object ( @objects ) {
         # Assert and Manupulate $object as you like
         $object->insert_or_update;
@@ -173,7 +177,7 @@ Arguments: { schema => $schema }
 
 Creates new form helper
 
-    my $helper = DBIx::Class::FormTools->new({ schema => $schema });
+    my $formtool = DBIx::Class::FormTools->new({ schema => $schema });
 
 =cut
 
@@ -183,7 +187,7 @@ Arguments: None
 
 Returns the schema
 
-    my $helper = $helper->schema;
+    my $schema = $formtool->schema;
 
 =cut
 
@@ -192,12 +196,12 @@ Returns the schema
 
 Arguments: $object, $accessor, $object_id, $foreign_object_ids
 
-    my $name_film  = $helper->fieldname($film, 'title', 'o1');
-    my $name_actor = $helper->fieldname($actor, 'name', 'o2');
-    my $name_role  = $helper->fieldname($role, undef,'o3',
+    my $name_film  = $formtool->fieldname($film, 'title', 'o1');
+    my $name_actor = $formtool->fieldname($actor, 'name', 'o2');
+    my $name_role  = $formtool->fieldname($role, undef,'o3',
         { film_id => 'o1', actor_id => 'o2' }
     );
-    my $name_role  = $helper->fieldname($role,'charater','o3',
+    my $name_role  = $formtool->fieldname($role,'charater','o3',
         { film_id => 'o1', actor_id => 'o2' }
     );
 
@@ -265,79 +269,123 @@ sub fieldname
 }
 
 
+sub field_id {
+    my $self = shift;
+    my $field_name = $self->fieldname(@_);
+    $field_name =~ s/[:|]+/_/go;
+    return $field_name;
+}
+
+
 =head2 C<formdata_to_objects>
 
 Arguments: \%formdata
 
-    my @objects = $helper->formdata_to_objects($formdata);
+    my @objects = $formtool->formdata_to_objects($formdata);
 
 Turn formdata(a querystring) in the form of a C<HASHREF> into an C<ARRAY> of
 C<DBIx::Class> objects.
 
 =cut
-sub formdata_to_objects
+sub formdata_to_object_hash
 {
     my ($self,$formdata) = @_;
-
-    # Cleanup old objects
-    $self->_objects({});
-    $self->_formdata({});
-
-    # Extract all dbic fields
-    my @dbic_formkeys = grep { /^dbic\|/ } keys %$formdata;
-
+my $to_object_indent = indent();
     my $objects = {};
+    my $rs = $self->schema->txn_do(sub{
+        # Cleanup old objects
+        $self->_objects({});
+        $self->_formdata({});
+        $self->_delayed_attributes({});
 
-    # Create a todo list with one entry for each unique objects
-    # So we can process them in reverse order of dependency
-    my %todolist;
+        # Extract all dbic fields
+        my @dbic_formkeys = grep { /^dbic\|/ } keys %$formdata;
 
-    # Sort data into piles for later object creation/updating
-    foreach my $formkey ( @dbic_formkeys ) {
-        my ($prefix,$object_id,$class,$id,$attribute) = split(/\|/,$formkey);
+        # Create a todo list with one entry for each unique objects
+        my $to_be_inflated = {};
 
-        # Store form contents
-        $self->_formdata->{$object_id}->{'content'}->{$attribute}
-            = $formdata->{$formkey} if $attribute;
+        # Sort data into piles for later object creation/updating
+        foreach my $formkey ( @dbic_formkeys ) {
+            my ($prefix,$object_id,$class,$id,$attribute) = split(/\|/,$formkey);
 
-        # Build id field
-        my %id;
-        foreach my $field ( split(/;/,$id) ) {
-            my ($key,$value) = split(/:/,$field);
-            $id{$key} = $value;
+            # Store form value for $attribute
+            if ( $attribute ) {
+                my $real_attribute = $self->_get_real_attribute_from_class($class,$attribute);
+
+                my $metadata = $self->schema->source($class)->column_info($real_attribute);
+                my $value    = $formdata->{$formkey};
+
+                # Handle empty fields for numeric attributes
+                $value = undef if !$value && $self->schema->storage->is_datatype_numeric($metadata->{data_type});
+
+                # Handle empty fields for date attributes
+                $value = undef if !$value && exists($metadata->{_ic_dt_method});
+
+                # Store value
+                $self->_formdata->{$object_id}->{'content'}->{$real_attribute} = $value;
+            }
+
+            # Build id field
+            my %id;
+            foreach my $field ( split(/;/,$id) ) {
+                my ($key,$value) = split(/:/,$field);
+                $id{$key} = $value;
+            }
+
+            # Store id field
+            $self->_formdata->{$object_id}->{'form_id'} = \%id;
+
+            # Save class name and oid in the todo list
+            println "$class | $object_id";
+            $to_be_inflated->{"$class|$object_id"} = {
+                class     => $class,
+                object_id => $object_id,
+            };
         }
 
-        # Store id field
-        $self->_formdata->{$object_id}->{'form_id'} = \%id;
+        # Build objects from form data
+        foreach my $todo ( values %$to_be_inflated ) {
+            my $object = $self->_inflate_object(
+                $todo->{ 'object_id' },
+                $todo->{ 'class'     },
+            );
+            $objects->{ $todo->{ 'object_id' } } = $object;
+        }
+    });
 
-        # Save class name and id in the todo list
-        # (hash used to avoid dupes)
-        $todolist{"$class|$object_id"} = {
-            class     => $class,
-            object_id => $object_id,
-        };
-    }
-
-    # Flatten todo hash into a todolist array
-    my @todolist = values %todolist;
-
-    # Build objects from form data
-    my @objects;
-    foreach my $todo ( @todolist ) {
-        my $object = $self->_inflate_object(
-            $todo->{ 'object_id' },
-            $todo->{ 'class'     },
-        );        
-        push(@objects,$object);
+    foreach my $oid ( keys %{$self->_delayed_attributes} ) {
+        println "Setting delayed attributes for '$oid'";
+        foreach my $accessor ( keys %{$self->_delayed_attributes->{$oid}} ) {
+            println "- ",ref($objects->{$oid}),"->$accessor( ",ref($self->_delayed_attributes->{$oid}{$accessor})," )";
+            $objects->{$oid}->$accessor($self->_delayed_attributes->{$oid}{$accessor});
+        }
     }
 
     # Cleanup old objects
     $self->_objects({});
     $self->_formdata({});
 
-    return(@objects);
+    return($objects);
 }
 
+sub formdata_to_objects {
+    my ($self,$formdata,$inflate_only) = @_;
+    my $hash = $self->formdata_to_object_hash($formdata,$inflate_only);
+    return values %$hash;
+}
+
+sub _get_real_attribute_from_class {
+    my ($self,$class,$attribute) = @_;
+
+    # Get relationship info for the attribute
+    my $relationship_info = $self->schema->source($class)->relationship_info($attribute);
+
+    # Resolve the actual column name in the table (e.g. a relation named 'location' might be called 'location_id' in the result_source)
+    my $real_attribute = ( $relationship_info && $relationship_info->{attrs}{accessor} eq 'filter' ) ? $attribute
+                       : ( $relationship_info && $relationship_info->{attrs}{accessor} eq 'single' ) ? (keys %{$relationship_info->{'attrs'}{'fk_columns'}})[0]
+                                                                                                     : $attribute;
+    return $real_attribute;
+}
 
 sub _flatten_id
 {
@@ -346,65 +394,62 @@ sub _flatten_id
     return join(';', map { $_.':'.$id->{$_} } sort keys %$id);
 }
 
-
 sub _inflate_object
 {
     my ($self,$oid,$class) = @_;
-
-    my $attributes;
+    my $inflate_indent = indent();
+    println "[$oid] _inflate_object - Begin";
     my $id;
+    my $attributes = {};
 
     # Object exists in form
     if ( exists($self->_formdata->{$oid}) ) {
         $id         = $self->_formdata->{$oid}->{'form_id'};
         $attributes = $self->_formdata->{$oid}->{'content'};
     }
-    # Object does not exist in form, use oid as id
-    # FIXME -> Should this be removed ?
+    # oid does not exist in the formdata, use oid is a real id
     else {
         $id = { id => $oid };
     }
 
+    # We must have an attribute hash if we want to call 'new' later on
+    $attributes = {} unless $attributes;
+
     # Return object if is already inflated
     return $self->_objects->{$class}->{$oid}
-        if $self->_objects->{$class}
-        && $self->_objects->{$class}->{$oid};
+        if ( $self->_objects->{$class} && $self->_objects->{$class}->{$oid} );
 
-    # Inflate foreign fields that map to a *single* column
+    # Build a lookup hash of fields that are relationship fields
     my $relationships = {
-        map { $_,$self->schema->source($class)->relationship_info($_) } 
+        map { $_,$self->schema->source($class)->relationship_info($_) }
         $self->schema->source($class)->relationships
     };
+
+    # Inflate foreign fields that map to a *single* column
+    my $todo_delayed_attributes = {};
     foreach my $foreign_accessor ( keys %$relationships ) {
         # Resolve foreign class name
-        my $foreign_class = $self->schema->source($relationships
-                                                  ->{$foreign_accessor}
-                                                  ->{'class'}
-                                                  )->source_name;
-
-        my $foreign_relation_type = $relationships->{$foreign_accessor}
-                                                  ->{'attrs'}
-                                                  ->{'accessor'};
+        my $foreign_class = $self->schema->source($relationships->{$foreign_accessor}->{'class'})->result_class;
+        my $foreign_relation_type = $relationships->{$foreign_accessor}->{'attrs'}->{'accessor'};
+        println "[$oid] Processing $foreign_accessor for $foreign_class";
 
         # Do not process multicolumn relationships, they will be processed
         # seperatly when the object to which they relate is inflated
         # I.e. only process "local" attributes
         next if $foreign_relation_type eq 'multi';
 
-        # Lookup foreign object id
-        # FIXME: Should we really look in both places?
-        my $foreign_oid = ( $self->_formdata
-                                 ->{$oid}
-                                 ->{'form_id'}
-                                 ->{$foreign_accessor} )
-                        ?   $self->_formdata
-                                 ->{$oid}
-                                 ->{'form_id'}
-                                 ->{$foreign_accessor}
-                        :   $self->_formdata
-                                 ->{$oid}
-                                 ->{'content'}
-                                 ->{$foreign_accessor};
+        # Resolve the actual column name in the table (e.g. a relation named 'location' might be called 'location_id')
+        my $real_foreign_accessor = $self->_get_real_attribute_from_class($class,$foreign_accessor);
+
+        # Lookup foreign object id or real id, if the foreign object has already been inflated
+        my $foreign_oid = ( exists($self->_formdata->{$oid}{'form_id'}{$real_foreign_accessor}) )
+                        ?   $self->_formdata->{$oid}{'form_id'}{$real_foreign_accessor}
+                        :   $self->_formdata->{$oid}{'content'}{$real_foreign_accessor};
+
+        # say "Formdata for local object: ".pp($self->_formdata);
+        println "[$oid] Foreign oid to inflate ", $foreign_oid;
+        println pp($self->_formdata->{$oid});
+
         # No id found, no inflate needed
         next unless $foreign_oid;
 
@@ -414,16 +459,16 @@ sub _inflate_object
         );
 
         # Store object for later use
-        $self->_objects->{$foreign_class}->{$oid}
-            = $foreign_object;
+        $self->_objects->{$foreign_class}->{$oid} = $foreign_object;
 
         # If the field is part of the id then store it there as well
-        $id->{$foreign_accessor} = $foreign_object->id
-            if exists $id->{$foreign_accessor};
+        $id->{$foreign_accessor} = $foreign_object->id if exists $id->{$foreign_accessor};
 
-        # Store the foreign object with all the other object data
-        # FIME: Shouldn't I be able to just pass the whole object here ?
-        $attributes->{$foreign_accessor} = $foreign_object->id;
+        # If the inflated foreign object is new, its 'id' will be undefined.
+        # Therefore we delay adding the foreign object to the local object, until the local object have been inflated or created.
+        println "[$oid] Delaying setting $foreign_accessor to ".ref($foreign_object);
+        $self->_delayed_attributes->{$oid}{$foreign_accessor} = $foreign_object;
+        # $attributes->{$real_foreign_accessor} = $foreign_object->id;
     }
     # All foreign objects have been now been inflated
 
@@ -435,22 +480,25 @@ sub _inflate_object
         my $source = $self->schema->source($class);
         # Don't lookup object if id is 'new'
         $object = $self->schema->resultset($source->source_name)->find($id)
-            unless grep { $id->{$_} eq 'new' } $source->primary_columns;
+            unless grep { defined($id->{$_}) && $id->{$_} eq 'new' } $source->primary_columns;
     }
 
     # Still no object, the create it
     unless ( $object ) {
-        $object = $self->schema->resultset($class)->create($attributes);
+        $object = $self->schema->resultset($class)->new($attributes);
     }
 
     # If we have a object update it with form data, if it exists
-    $object->set_columns($attributes) if $attributes && $object;
+    println "[$oid] We have an object: ".ref($object).", add to todo list";
+    println "[$oid] Attributes: ".pp($attributes);
+    $object->set_columns($attributes) if $object && $attributes;
 
     # Store object for later use
     if ( $id && $object ) {
+        # say "Storing object ".ref($object)." for later use.";
         $self->_objects->{$class}->{$oid} = $object;
     }
-
+    println "[$oid] _inflate_object - End";
     return($object);
 }
 

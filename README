@@ -1,6 +1,6 @@
-DBIx-Class-FormTools version 0.0.5
+DBIx-Class-FormTools version 0.0.8
 
-Note this is Alpha software - everything might change ;-)
+Note this is Beta software - everything might change ;-)
 
 INSTALLATION
 
@@ -18,7 +18,7 @@ DEPENDENCIES
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2006, David Jack Olrik
+Copyright (C) 2006, David Jack Wange Olrik
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

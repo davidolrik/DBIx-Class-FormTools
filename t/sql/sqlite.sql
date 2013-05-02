@@ -1,3 +1,9 @@
+create table directors (
+    id              integer primary key not null,
+    name            varchar(128)
+);
+
+
 create table locations (
     id              integer primary key not null,
     name            varchar(128)
@@ -9,7 +15,8 @@ create table films (
     title           varchar(128),
     length          integer,
     comment         text,
-    location_id     integer references location(id)
+    director_id     integer references directors(id),
+    location_id     integer references locations(id)
 );
 
 

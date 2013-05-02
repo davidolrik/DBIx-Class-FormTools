@@ -11,6 +11,7 @@ __PACKAGE__->load_classes(qw[
     Actor
     Location
     Role
+    Director
 ]);
 
 1;

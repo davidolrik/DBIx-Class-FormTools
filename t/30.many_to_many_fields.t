@@ -3,7 +3,7 @@ use Data::Dump 'pp';
 
 BEGIN {
 	eval "use DBD::SQLite";
-	plan $@ ? (skip_all => 'needs DBD::SQLite for testing') : (tests => 8);
+	plan $@ ? (skip_all => 'needs DBD::SQLite for testing') : (tests => 10);
 }
 
 INIT {
@@ -45,13 +45,15 @@ my $formdata = {
 };
 ok(1,"Formdata created:\n".pp($formdata));
 
-my @objects = $helper->formdata_to_objects($formdata);
-ok(@objects == 3, 'Excacly three object retrieved');
-ok(ref($objects[0]) eq 'Schema::Film', 'Object is a Film');
+my $objects = $helper->formdata_to_object_hash($formdata);
+ok(keys %$objects == 3, 'Excacly three object retrieved');
+isa_ok($objects->{o1}, 'Schema::Film', 'Object is a Film.');
+isa_ok($objects->{o2}, 'Schema::Actor', 'Object is a Actor.');
+isa_ok($objects->{o3}, 'Schema::Role', 'Object is a Role.');
 
-print 'Final objects: '.pp(\@objects) ."\n"
+print 'Final objects: '.pp($objects) ."\n"
     if $ENV{DBIX_CLASS_FORMTOOLS_DEBUG};
 
-ok((map { $_->insert_or_update } @objects),"Updating objects in db");
+ok((map { $_->insert_or_update } values %$objects),"Updating objects in db.");
 
 1;

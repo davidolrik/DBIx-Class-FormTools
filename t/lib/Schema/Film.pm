@@ -1,4 +1,4 @@
-package  # hide from PAUSE
+package # hide from PAUSE
     Schema::Film;
 
 use strict;
@@ -20,10 +20,14 @@ __PACKAGE__->add_columns(qw[
     length
     comment
     location_id
+    director_id
 ]);
 __PACKAGE__->set_primary_key('id');
 
-__PACKAGE__->belongs_to(location_id => 'Schema::Location');
-__PACKAGE__->has_many(roles         => 'Schema::Role', 'film_id');
+__PACKAGE__->belongs_to('director_id' => 'Schema::Director');
+
+__PACKAGE__->belongs_to(location => 'Schema::Location', 'location_id');
+__PACKAGE__->has_many(roles => 'Schema::Role', 'film_id');
+
 
 1;

@@ -8,13 +8,7 @@ use Schema;
 
 our $dbfile = './t/tmp/test.db';
 our $dsn    = "dbi:SQLite:${dbfile}";
-
-our $schema = Schema->connect(
-    $dsn,
-    'djo',
-    'djo',
-    { AutoCommit => 0 }
-);
+our $schema = Schema->connect($dsn);
 
 sub initialize
 {
