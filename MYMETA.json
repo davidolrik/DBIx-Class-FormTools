@@ -16,7 +16,8 @@
    "prereqs" : {
       "build" : {
          "requires" : {
-            "Data::Dump" : "0"
+            "Data::Dump" : "0",
+            "Debug::ShowStuff" : "1.16"
          }
       },
       "runtime" : {
@@ -26,6 +27,12 @@
             "Test::More" : "0",
             "version" : "0.50"
          }
+      }
+   },
+   "provides" : {
+      "DBIx::Class::FormTools" : {
+         "file" : "lib/DBIx/Class/FormTools.pm",
+         "version" : "0.000008_01"
       }
    },
    "release_status" : "testing",

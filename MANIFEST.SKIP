@@ -32,3 +32,4 @@
 # Avoid dist files
 ^DBIx-Class-FormTools-.+\.tar\.gz^MYMETA\.yml$
 ^MYMETA\.json$
+^MYMETA\.yml$

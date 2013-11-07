@@ -4,6 +4,7 @@ author:
   - 'David Jack Olrik <david@olrik.dk>'
 build_requires:
   Data::Dump: 0
+  Debug::ShowStuff: 1.16
 dynamic_config: 0
 generated_by: 'Module::Build version 0.4008, CPAN::Meta::Converter version 2.120921'
 license: perl
@@ -11,6 +12,10 @@ meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
   version: 1.4
 name: DBIx-Class-FormTools
+provides:
+  DBIx::Class::FormTools:
+    file: lib/DBIx/Class/FormTools.pm
+    version: 0.000008_01
 requires:
   DBIx::Class: 0.06003
   Moose: 0.11
