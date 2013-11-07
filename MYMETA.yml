@@ -4,7 +4,6 @@ author:
   - 'David Jack Olrik <david@olrik.dk>'
 build_requires:
   Data::Dump: 0
-  Debug::ShowStuff: 1.16
 dynamic_config: 0
 generated_by: 'Module::Build version 0.4008, CPAN::Meta::Converter version 2.120921'
 license: perl

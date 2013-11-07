@@ -16,8 +16,7 @@
    "prereqs" : {
       "build" : {
          "requires" : {
-            "Data::Dump" : "0",
-            "Debug::ShowStuff" : "1.16"
+            "Data::Dump" : "0"
          }
       },
       "runtime" : {

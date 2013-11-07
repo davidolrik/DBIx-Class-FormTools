@@ -16,7 +16,6 @@ my $build = Module::Build->new(
     },
     build_requires      => {
         'Data::Dump'       => 0,
-        'Debug::ShowStuff' => '1.16',
     },
     add_to_cleanup         => [ 'DBIx-Class-FormTools-*' ],
     create_makefile_pl     => 'passthrough',

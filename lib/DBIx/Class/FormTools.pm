@@ -12,7 +12,7 @@ use Carp;
 use Moose;
 
 use Data::Dump 'pp';
-use Debug::ShowStuff ':all';
+# use Debug::ShowStuff ':all';
 
 has 'schema'    => (is => 'rw', isa => 'Ref');
 has '_formdata' => (is => 'rw', isa => 'HashRef');
@@ -56,7 +56,7 @@ C<Role> is a many to many relation between C<Film> and C<Actor>.
     ]);
     __PACKAGE__->set_primary_key('id');
     __PACKAGE__->has_many(roles => 'MySchema::Role', 'film_id');
-    
+
 
     package MySchema::Actor;
     __PACKAGE__->table('films');
@@ -86,9 +86,9 @@ C<Role> is a many to many relation between C<Film> and C<Actor>.
 =head2 In your Controller
 
     use DBIx::Class::FormTools;
-    
+
     my $formtool = DBIx::Class::FormTools->new({ schema => $schema });
-    
+
 
 =head2 In your view - L<HTML::Mason> example
 
@@ -96,7 +96,7 @@ C<Role> is a many to many relation between C<Film> and C<Actor>.
     my $film  = $schema->resultset('Film')->find(42);
     my $actor = $schema->resultset('Actor')->find(24);
     my $role  = $schema->resultset('Role')->new;
-    
+
     </%init>
     <form>
         <input
@@ -143,7 +143,7 @@ C<Role> is a many to many relation between C<Film> and C<Actor>.
 =head2 Introduction
 
 L<DBIx::Class::FormTools> is a data serializer, that can convert HTML formdata
-to L<DBIx::Class> objects based on element names created with 
+to L<DBIx::Class> objects based on element names created with
 L<DBIx::Class::FormTools>.
 
 It uses user supplied object ids to connect the objects with each-other.
@@ -235,9 +235,9 @@ sub fieldname
 
     # Get class name
     my $class = $object->source_name || ref($object);
-    
+
     my @primary_keys  = $object->primary_columns;
-    
+
     my %relationships
         = ( map { $_,$object->relationship_info($_) } $object->relationships );
 
@@ -290,7 +290,7 @@ C<DBIx::Class> objects.
 sub formdata_to_object_hash
 {
     my ($self,$formdata) = @_;
-my $to_object_indent = indent();
+    # my $to_object_indent = indent();
     my $objects = {};
     my $rs = $self->schema->txn_do(sub{
         # Cleanup old objects
@@ -336,7 +336,7 @@ my $to_object_indent = indent();
             $self->_formdata->{$object_id}->{'form_id'} = \%id;
 
             # Save class name and oid in the todo list
-            println "$class | $object_id";
+            # println "$class | $object_id";
             $to_be_inflated->{"$class|$object_id"} = {
                 class     => $class,
                 object_id => $object_id,
@@ -354,9 +354,9 @@ my $to_object_indent = indent();
     });
 
     foreach my $oid ( keys %{$self->_delayed_attributes} ) {
-        println "Setting delayed attributes for '$oid'";
+        # println "Setting delayed attributes for '$oid'";
         foreach my $accessor ( keys %{$self->_delayed_attributes->{$oid}} ) {
-            println "- ",ref($objects->{$oid}),"->$accessor( ",ref($self->_delayed_attributes->{$oid}{$accessor})," )";
+            # println "- ",ref($objects->{$oid}),"->$accessor( ",ref($self->_delayed_attributes->{$oid}{$accessor})," )";
             $objects->{$oid}->$accessor($self->_delayed_attributes->{$oid}{$accessor});
         }
     }
@@ -390,15 +390,15 @@ sub _get_real_attribute_from_class {
 sub _flatten_id
 {
     my ($id) = @_;
-    
+
     return join(';', map { $_.':'.$id->{$_} } sort keys %$id);
 }
 
 sub _inflate_object
 {
     my ($self,$oid,$class) = @_;
-    my $inflate_indent = indent();
-    println "[$oid] _inflate_object - Begin";
+    # my $inflate_indent = indent();
+    # println "[$oid] _inflate_object - Begin";
     my $id;
     my $attributes = {};
 
@@ -431,7 +431,7 @@ sub _inflate_object
         # Resolve foreign class name
         my $foreign_class = $self->schema->source($relationships->{$foreign_accessor}->{'class'})->result_class;
         my $foreign_relation_type = $relationships->{$foreign_accessor}->{'attrs'}->{'accessor'};
-        println "[$oid] Processing $foreign_accessor for $foreign_class";
+        # println "[$oid] Processing $foreign_accessor for $foreign_class";
 
         # Do not process multicolumn relationships, they will be processed
         # seperatly when the object to which they relate is inflated
@@ -447,8 +447,8 @@ sub _inflate_object
                         :   $self->_formdata->{$oid}{'content'}{$real_foreign_accessor};
 
         # say "Formdata for local object: ".pp($self->_formdata);
-        println "[$oid] Foreign oid to inflate ", $foreign_oid;
-        println pp($self->_formdata->{$oid});
+        # println "[$oid] Foreign oid to inflate ", $foreign_oid;
+        # println pp($self->_formdata->{$oid});
 
         # No id found, no inflate needed
         next unless $foreign_oid;
@@ -466,7 +466,7 @@ sub _inflate_object
 
         # If the inflated foreign object is new, its 'id' will be undefined.
         # Therefore we delay adding the foreign object to the local object, until the local object have been inflated or created.
-        println "[$oid] Delaying setting $foreign_accessor to ".ref($foreign_object);
+        # println "[$oid] Delaying setting $foreign_accessor to ".ref($foreign_object);
         $self->_delayed_attributes->{$oid}{$foreign_accessor} = $foreign_object;
         # $attributes->{$real_foreign_accessor} = $foreign_object->id;
     }
@@ -489,8 +489,8 @@ sub _inflate_object
     }
 
     # If we have a object update it with form data, if it exists
-    println "[$oid] We have an object: ".ref($object).", add to todo list";
-    println "[$oid] Attributes: ".pp($attributes);
+    # println "[$oid] We have an object: ".ref($object).", add to todo list";
+    # println "[$oid] Attributes: ".pp($attributes);
     $object->set_columns($attributes) if $object && $attributes;
 
     # Store object for later use
@@ -498,19 +498,9 @@ sub _inflate_object
         # say "Storing object ".ref($object)." for later use.";
         $self->_objects->{$class}->{$oid} = $object;
     }
-    println "[$oid] _inflate_object - End";
+    # println "[$oid] _inflate_object - End";
     return($object);
 }
-
-
-# sub form
-# {
-#     my $self = shift;
-#     my $form = DBIx::Class::FormTools::Form->new({});
-#     
-#     return($form);
-# }
-
 
 1; # Magic true value required at end of module
 __END__
