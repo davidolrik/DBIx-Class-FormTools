@@ -4,7 +4,7 @@
       "David Jack Olrik <david@olrik.dk>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Module::Build version 0.4003, CPAN::Meta::Converter version 2.120921",
+   "generated_by" : "Module::Build version 0.4008, CPAN::Meta::Converter version 2.120921",
    "license" : [
       "perl_5"
    ],

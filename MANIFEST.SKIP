@@ -30,4 +30,5 @@
 ^t/tmp
 
 # Avoid dist files
-^DBIx-Class-FormTools-.+\.tar\.gz
+^DBIx-Class-FormTools-.+\.tar\.gz^MYMETA\.yml$
+^MYMETA\.json$
