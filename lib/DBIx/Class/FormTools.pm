@@ -1,6 +1,6 @@
 package DBIx::Class::FormTools;
 
-our $VERSION = '0.000008_01';
+our $VERSION = '0.000008';
 
 use 5.10.1;
 use strict;
