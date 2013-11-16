@@ -26,7 +26,7 @@ DBIx::Class::FormTools - Helper module for building forms with multiple related 
 
 =head1 VERSION
 
-This document describes DBIx::Class::FormTools version 0.0.8
+This document describes DBIx::Class::FormTools version 0.0.9
 
 =head1 SYNOPSIS
 
