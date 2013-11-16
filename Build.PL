@@ -8,6 +8,9 @@ my $build = Module::Build->new(
     license                => 'perl',
     dist_author            => 'David Jack Olrik <david@olrik.dk>',
     dist_version_from      => 'lib/DBIx/Class/FormTools.pm',
+    configure_requires => {
+        'Module::Build' => 0.40
+    },
     requires => {
         'Test::More'       => 0,
         'version'          => '0.50',
@@ -18,7 +21,6 @@ my $build = Module::Build->new(
         'Data::Dump'       => 0,
     },
     add_to_cleanup         => [ 'DBIx-Class-FormTools-*' ],
-    create_makefile_pl     => 'passthrough',
 );
 
 $build->create_build_script;
