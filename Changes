@@ -1,5 +1,8 @@
 Revision history for DBIx-Class-FormTools
 
+0.0.8   Sat Nov 16 00:59:42 CET 2013
+        - Added transaction support. (Play nice with AutoCommit=1)
+
 0.0.7   Sun  6 Jun 2010 12:42:12 CEST
         - Added Data::Dump to build requires
         - Use pp instead of dump to avoid name clash with build-in
