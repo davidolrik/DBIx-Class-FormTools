@@ -1,5 +1,8 @@
 Revision history for DBIx-Class-FormTools
 
+0.0.9   Sat Nov 16 01:05:42 CET 2013
+        - Updated Build.PL to no longer create Makefile.PL
+
 0.0.8   Sat Nov 16 00:59:42 CET 2013
         - Added transaction support. (Play nice with AutoCommit=1)
 
