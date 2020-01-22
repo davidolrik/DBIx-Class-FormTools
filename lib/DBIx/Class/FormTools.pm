@@ -1,6 +1,6 @@
 package DBIx::Class::FormTools;
 
-our $VERSION = '0.000009';
+our $VERSION = '0.000010';
 
 use 5.10.1;
 use strict;
@@ -26,7 +26,7 @@ DBIx::Class::FormTools - Helper module for building forms with multiple related 
 
 =head1 VERSION
 
-This document describes DBIx::Class::FormTools version 0.0.9
+This document describes DBIx::Class::FormTools version 0.0.10
 
 =head1 SYNOPSIS
 
