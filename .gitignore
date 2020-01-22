@@ -4,3 +4,5 @@ blib
 DBIx-Class-FormTools-*
 META.*
 MYMETA.*
+Makefile
+Makefile.PL
